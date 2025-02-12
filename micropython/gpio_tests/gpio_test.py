@@ -39,13 +39,25 @@ def test_uart(id):
         print("UART",id,"test failed")
     uart.deinit()
 
-def test_spi(id):
+def test_spi(id, hardware=True):
     """Test SPI loopback by ID."""
+    sck=machine.Pin(14)
+    mosi=machine.Pin(13)
+    miso=machine.Pin(12)
+    cs = machine.Pin(18, machine.Pin.OUT)  # Add a Chip Select pin
+    if id == 2:
+        sck=machine.Pin(18)
+        mosi=machine.Pin(23)
+        miso=machine.Pin(19)
+        cs = machine.Pin(23, machine.Pin.OUT)  # Add a Chip Select pin
+        
     try:
-        spi = machine.SPI(id, baudrate=spi_baudrate)
+        spi = machine.SPI(id, baudrate=spi_baudrate) if hardware else machine.SoftSPI(baudrate=spi_baudrate, sck=sck, mosi=mosi, miso=miso)
         test_data = b"Hello, SPI " + str(id).encode() + b"!"
+        cs.value(0)  # Activate the "slave" (loopback) - Important!
         spi.write(test_data)
         received_data = spi.read(len(test_data)) # Read the same amount of data sent
+        cs.value(1)  # Deactivate the "slave"
         if received_data == test_data:
             print(f"SPI {id} test successful")
         else:
@@ -58,9 +70,11 @@ def main():
     while True:
         test_gpio()
         time.sleep_ms(1000)  
-        test_uart(2)
+        #test_uart(2)
         time.sleep_ms(1000)
-        test_spi(2)
+        test_spi(2, True)
 
 if __name__ == "__main__":
     main()
+
+
